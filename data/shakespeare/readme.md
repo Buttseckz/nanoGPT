@@ -1,9 +1,8 @@
-
 # tiny shakespeare
 
-Tiny shakespeare, of the good old char-rnn fame :)
+# Tiny shakespeare é famoso pelo velho e bom char-rnn.
 
-After running `prepare.py`:
+Depois de executar o arquivo `prepare.py`:
 
-- train.bin has 301,966 tokens
-- val.bin has 36,059 tokens
+- O arquivo train.bin tem 301.966 tokens
+- O arquivo val.bin tem 36.059 tokens

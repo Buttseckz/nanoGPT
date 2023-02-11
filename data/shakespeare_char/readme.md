@@ -1,9 +1,8 @@
+# Tiny Shakespeare, nível de caractere
 
-# tiny shakespeare, character-level
+Tiny Shakespeare, da boa e velha fama char-rnn :) Tratado no nível de caractere.
 
-Tiny shakespeare, of the good old char-rnn fame :) Treated on character-level.
+Depois de executar o `prepare.py`:
 
-After running `prepare.py`:
-
-- train.bin has 1,003,854 tokens
-- val.bin has 111,540 tokens
+- train.bin tem 1.003.854 tokens
+- val.bin tem 111.540 tokens

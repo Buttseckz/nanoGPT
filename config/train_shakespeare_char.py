@@ -1,36 +1,36 @@
-# train a miniature character-level shakespeare model
-# good for debugging and playing on macbooks and such
+# Treinando um modelo miniatura de caracteres baseado em Shakespeare
+# bom para debugar e brincar em MacBooks e similares
 
 out_dir = 'out-shakespeare-char'
-eval_interval = 250 # keep frequent because we'll overfit
+eval_interval = 250 # Mantenha frequente porque vamos sobreajustar
 eval_iters = 200
-log_interval = 10 # don't print too too often
+log_interval = 10 # Não imprima muito frequentemente
 
-# we expect to overfit on this small dataset, so only save when val improves
+# Esperamos sobreajustar neste pequeno conjunto de dados, então apenas salve quando val melhore
 always_save_checkpoint = False
 
-wandb_log = True # override via command line if you like
+wandb_log = True # Sobrepor via linha de comando se você quiser
 wandb_project = 'shakespeare-char'
 wandb_run_name = 'mini-gpt'
 
 dataset = 'shakespeare_char'
 batch_size = 64
-block_size = 256 # context of up to 256 previous characters
+block_size = 256 # Contexto de até 256 caracteres anteriores
 
-# baby GPT model :)
+# Modelo baby GPT :)
 n_layer = 6
 n_head = 6
 n_embd = 384
 dropout = 0.2
 
-learning_rate = 1e-3 # with baby networks can afford to go a bit higher
+learning_rate = 1e-3 # Com redes baby, podemos permitir ir um pouco mais alto
 max_iters = 5000
-lr_decay_iters = 5000 # make equal to max_iters usually
-min_lr = 1e-4 # learning_rate / 10 usually
-beta2 = 0.99 # make a bit bigger because number of tokens per iter is small
+lr_decay_iters = 5000 # Faça igual a max_iters geralmente
+min_lr = 1e-4 # learning_rate / 10 geralmente
+beta2 = 0.99 # Faça um pouco maior porque o número de tokens por iteração é pequeno
 
-warmup_iters = 100 # not super necessary potentially
+warmup_iters = 100 # Não é muito necessário potencialmente
 
-# on macbook also add
-# device = 'cpu'  # run on cpu only
-# compile = False # do not torch compile the model
+# No MacBook também adicione
+# device = 'cpu'  # execute apenas no CPU
+# compile = False # não compile o modelo com torch
