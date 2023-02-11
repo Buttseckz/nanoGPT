@@ -1,5 +1,5 @@
 """
-Sample from a trained model
+Amostra de um modelo treinado
 """
 import os
 import pickle
@@ -9,31 +9,48 @@ import tiktoken
 from model import GPTConfig, GPT
 
 # -----------------------------------------------------------------------------
-init_from = 'resume' # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
-out_dir = 'out' # ignored if init_from is not 'resume'
-start = "\n" # or "<|endoftext|>" or etc. Can also specify a file, use as: "FILE:prompt.txt"
-num_samples = 10 # number of samples to draw
-max_new_tokens = 500 # number of tokens generated in each sample
-temperature = 0.8 # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
-top_k = 200 # retain only the top_k most likely tokens, clamp others to have 0 probability
+# Inicialização do modelo: 'resume' (de um diretório) ou uma variante de GPT-2 (por exemplo, 'gpt2-xl')
+init_from = 'resume' 
+# Diretório ignorado se init_from não for 'resume'
+out_dir = 'out' 
+# Início do prompt: "\n" ou "" ou etc. Pode ser especificado um arquivo, usado como: "FILE:prompt.txt"
+start = "\n" 
+# Número de amostras a serem geradas
+num_samples = 10 
+# Número de tokens gerados em cada amostra
+max_new_tokens = 500 
+# Temperatura: 1.0 = sem mudanças, < 1.0 = menos aleatório, > 1.0 = mais aleatório nas previsões
+temperature = 0.8 
+# Retenha apenas os top_k tokens mais prováveis, limitando outros para ter probabilidade 0
+top_k = 200 
+# Semente
 seed = 1337
-device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
-dtype = 'float16' # 'float32' or 'bfloat16' or 'float16'
-compile = False # use PyTorch 2.0 to compile the model to be faster
-exec(open('configurator.py').read()) # overrides from command line or config file
+# Dispositivo: 'cpu' ou 'cuda' ou 'cuda:0' ou 'cuda:1' etc.
+device = 'cuda' 
+# Tipo de dado: 'float32' ou 'bfloat16' ou 'float16'
+dtype = 'float16' 
+# Usar PyTorch 2.0 para compilar o modelo para ser mais rápido
+compile = False 
+# Sobrescreve do comando de linha ou arquivo de configuração
+exec(open('configurator.py').read()) 
 # -----------------------------------------------------------------------------
 
+# Configura a semente
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
-torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.autocast
+# Permitir tf32 nas operações de matmul e cudnn
+torch.backends.cuda.matmul.allow_tf32 = True 
+torch.backends.cudnn.allow_tf32 = True 
+# Tipo de dispositivo para uso futuro em torch.autocast
+device_type = 'cuda' if 'cuda' in device else 'cpu' 
+# Tipo de dado para uso futuro
 ptdtype = {'float32': torch.float32, 'float16': torch.float16, 'float16': torch.float16}[dtype]
+# Contexto para otimização
 ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
-# model
+# Inicialização do modelo
 if init_from == 'resume':
-    # init from a model saved in a specific directory
+    # Inicialização a partir de um modelo salvo em um diretório específico
     ckpt_path = os.path.join(out_dir, 'ckpt.pt')
     checkpoint = torch.load(ckpt_path, map_location=device)
     gptconf = GPTConfig(**checkpoint['model_args'])
@@ -45,42 +62,45 @@ if init_from == 'resume':
             state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
     model.load_state_dict(state_dict)
 elif init_from.startswith('gpt2'):
-    # init from a given GPT-2 model
+    # Inicialização a partir de uma determinada versão do GPT-2
     model = GPT.from_pretrained(init_from, dict(dropout=0.0))
 
+# Configuração do modelo como avaliação
 model.eval()
 model.to(device)
+# Compilação do modelo com PyTorch 2.0 (opcional)
 if compile:
-    model = torch.compile(model) # requires PyTorch 2.0 (optional)
+    model = torch.compile(model) # requer PyTorch 2.0
 
-# look for the meta pickle in case it is available in the dataset folder
+
+# procurar pelo arquivo pickle "meta" caso ele esteja disponível na pasta de dados
 load_meta = False
-if init_from == 'resume' and 'config' in checkpoint and 'dataset' in checkpoint['config']: # older checkpoints might not have these...
+if init_from == 'resume' and 'config' in checkpoint and 'dataset' in checkpoint['config']: # checkpoints antigos podem não ter esses dados...
     meta_path = os.path.join('data', checkpoint['config']['dataset'], 'meta.pkl')
     load_meta = os.path.exists(meta_path)
 if load_meta:
     print(f"Loading meta from {meta_path}...")
     with open(meta_path, 'rb') as f:
         meta = pickle.load(f)
-    # TODO want to make this more general to arbitrary encoder/decoder schemes
+    # TODO quero tornar isso mais geral para esquemas de codificação/decodificação arbitrários
     stoi, itos = meta['stoi'], meta['itos']
     encode = lambda s: [stoi[c] for c in s]
     decode = lambda l: ''.join([itos[i] for i in l])
 else:
-    # ok let's assume gpt-2 encodings by default
+    # ok, vamos assumir as codificações gpt-2 por padrão
     print("No meta.pkl found, assuming GPT-2 encodings...")
     enc = tiktoken.get_encoding("gpt2")
     encode = lambda s: enc.encode(s, allowed_special={"<|endoftext|>"})
     decode = lambda l: enc.decode(l)
 
-# encode the beginning of the prompt
+# encode o inicio do prompt
 if start.startswith('FILE:'):
     with open(start[5:], 'r', encoding='utf-8') as f:
         start = f.read()
 start_ids = encode(start)
 x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
 
-# run generation
+# começa a geração
 with torch.no_grad():
     with ctx:
         for k in range(num_samples):
